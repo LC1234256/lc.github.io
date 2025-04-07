@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>反应速度测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            position: relative;
+            height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+        #main {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: start;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        #history {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 10px;
+
+            
+            
+            min-width: 200px;
+            max-height: 900px;
+            overflow-y: auto;
+        }
+        #color-area {
+            width: 900px;
+            height: 600px;
+            background-color: #FFA500;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: background-color 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        #start-restart-btn,
+        #clear-history-btn {
+            padding: 10px 20px;
+            font-size: 18px;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 10px; /* 调整按钮之间的垂直间距 */
+            width: 200px; /* 设置按钮宽度，方便水平居中 */
+        }
+        #start-restart-btn {
+            background-color: #4CAF50;
+        }
+        #start-restart-btn:hover {
+            background-color: #45a049;
+        }
+        #clear-history-btn {
+            background-color: #FFD700;
+        }
+        #clear-history-btn:hover {
+            background-color: #FFC107;
+        }
+        #result {
+            font-size: 18px;
+            margin-top: 10px;
+        }
+        #instruction {
+            margin-bottom: 20px;
+            font-size: 16px;
+            color: #555;
+        }
+        #history-list {
+            list-style-type: disc;
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="main">
+        <h1>反应速度测试</h1>
+        <p id="instruction">当红色区域变成绿色时，立即点击它！</p>
+        <div id="color-area">等待开始...</div>
+        <button id="start-restart-btn">开始游戏</button>
+        <button id="clear-history-btn">清除历史记录</button>
+        <div id="result"></div>
+    </div>
+    <div id="history">
+        <h2>历史记录</h2>
+        <ul id="history-list"></ul>
+        <p id="best-time">最好成绩: 无</p>
+        <p id="average-time">平均成绩: 无</p>
+    </div>
+    <script>
+        const colorArea = document.getElementById('color-area');
+        const startRestartBtn = document.getElementById('start-restart-btn');
+        const resultDiv = document.getElementById('result');
+        const historyList = document.getElementById('history-list');
+        const bestTime = document.getElementById('best-time');
+        const averageTime = document.getElementById('average-time');
+        const clearHistoryBtn = document.getElementById('clear-history-btn');
+
+        let startTime;
+        let timeoutId;
+        let isWaiting = false;
+        let hasChanged = false;
+        let history = [];
+
+        startRestartBtn.addEventListener('click', startOrRestartGame);
+        colorArea.addEventListener('click', handleColorAreaClick);
+        clearHistoryBtn.addEventListener('click', clearHistory);
+
+        function startOrRestartGame() {
+            if (startRestartBtn.textContent === '开始游戏') {
+                startGame();
+            } else {
+                resetGame();
+            }
+        }
+
+        function startGame() {
+            colorArea.style.backgroundColor = '#FF6347';
+            colorArea.textContent = '等待变色...';
+            resultDiv.textContent = '';
+            startRestartBtn.style.display = 'none';
+            clearHistoryBtn.style.display = 'none';
+
+            const delay = Math.random() * 4000 + 1000;
+            isWaiting = true;
+            hasChanged = false;
+
+            timeoutId = setTimeout(() => {
+                colorArea.style.backgroundColor = 'green';
+                colorArea.textContent = '点击！';
+                startTime = Date.now();
+                hasChanged = true;
+                isWaiting = false;
+            }, delay);
+        }
+
+        function handleColorAreaClick() {
+            if (isWaiting) {
+                clearTimeout(timeoutId);
+                resultDiv.textContent = '不要预判！等待变色后再点击。';
+                colorArea.style.backgroundColor = 'red';
+                colorArea.textContent = '提前点击了！';
+                startRestartBtn.textContent = '重新测试';
+                startRestartBtn.style.display = 'block';
+                clearHistoryBtn.style.display = 'block';
+                isWaiting = false;
+            } else if (hasChanged) {
+                const reactionTime = Date.now() - startTime;
+                resultDiv.textContent = `你的反应时间: ${reactionTime} 毫秒`;
+                colorArea.style.backgroundColor = 'blue';
+                colorArea.textContent = '完成！';
+                startRestartBtn.textContent = '重新测试';
+                startRestartBtn.style.display = 'block';
+                clearHistoryBtn.style.display = 'block';
+                hasChanged = false;
+
+                history.push(reactionTime);
+                const listItem = document.createElement('li');
+                listItem.textContent = `${reactionTime} 毫秒`;
+                historyList.appendChild(listItem);
+
+                const best = Math.min(...history);
+                const avg = history.reduce((sum, time) => sum + time, 0) / history.length;
+                bestTime.textContent = `最好成绩: ${best} 毫秒`;
+                averageTime.textContent = `平均成绩: ${avg.toFixed(2)} 毫秒`;
+            }
+        }
+
+        function resetGame() {
+            colorArea.style.backgroundColor = '#FFA500';
+            colorArea.textContent = '等待开始...';
+            resultDiv.textContent = '';
+            startRestartBtn.textContent = '开始游戏';
+            startRestartBtn.style.display = 'block';
+            clearHistoryBtn.style.display = 'block';
+            isWaiting = false;
+            hasChanged = false;
+        }
+
+        function clearHistory() {
+            history = [];
+            historyList.innerHTML = '';
+            bestTime.textContent = '最好成绩: 无';
+            averageTime.textContent = '平均成绩: 无';
+        }
+    </script>
+</body>
+</html>
